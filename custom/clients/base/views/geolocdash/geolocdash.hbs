@@ -1,0 +1,28 @@
+<div id="geoLocDashlet" style="padding: 5px;">
+	<div style="display:inline-block; width: 100%;">
+		<span class="record-label span3">{{str 'LBL_DASHLET_GEOLOC_FIELD_SELECT'}}</span>
+		<span class="span5">
+			<select id="geoloc_selected"></select>
+		</span>
+		<span class="span4">
+			<button style="float:right;" id="copy_values" class="btn btn-primary">{{str 'LBL_DASHLET_COPY_VALUES'}}</button>
+		</span>
+	</div>
+	<div style="display:none; width: 100%;">
+		<span class="record-label span3">{{str 'LBL_DASHLET_LATITUDE'}}</span>
+		<span class="span9" id="DASHLET_LATITUDE">
+		</span>
+	</div>
+	<div style="display:none; width: 100%;">
+		<span class="record-label span3">{{str 'LBL_DASHLET_LONGITUDE'}}</span>
+		<span class="span9" id="DASHLET_LONGITUDE">
+		</span>
+	</div>
+	<div style="display:none; width: 100%;">
+		<span class="record-label span3">{{str 'LBL_DASHLET_ZOOM'}}</span>
+		<span class="span9" id="DASHLET_ZOOM">
+		</span>
+	</div>
+	<div id="dvMap" style="width: 400px; height: 400px; margin: 0 auto; float:none;">
+	</div>
+</div>

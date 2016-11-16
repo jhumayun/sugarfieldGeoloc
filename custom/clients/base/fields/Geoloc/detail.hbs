@@ -1,0 +1,31 @@
+<fieldset style="border:1px solid grey !important;padding:10px;">
+    <legend style="border:none !important;width:auto;">{{str label 'LBL_GEOLOC'}}</legend>
+    <div id="{{name}}">
+        <div>
+            <span class="record-label span3">{{str 'LBL_GEOLOC_LAT'}}</span>
+            <span class="span9">
+                {{#with latitude}}
+                    {{field ../view model=../model template="detail"}}
+                {{/with}}   
+            </span>
+        </div>
+        <div>
+            <span class="record-label span3">{{str 'LBL_GEOLOC_LONG'}}</span>
+            <span class="span9">
+                {{#with longitude}}
+                    {{field ../view model=../model template="detail"}}
+                {{/with}}
+            </span>
+            </div>
+        <div>
+            <span class="record-label span3">{{str 'LBL_GEOLOC_ZOOM'}}</span>
+            <span class="span9">
+                {{#with zoom}}
+                    {{field ../view model=../model template="detail"}}
+                {{/with}}
+            </span>
+        </div>
+    </div>
+	<!--<div id="dvMap" style="width: 300px; height: 300px">
+    </div>-->
+</fieldset>
