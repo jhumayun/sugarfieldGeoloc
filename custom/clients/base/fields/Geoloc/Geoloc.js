@@ -1,18 +1,23 @@
 /**
 	@Author: Jawad Humayun
 	email: 1987jawad@gmail.com
+	google Guide for API Key: https://developers.google.com/maps/documentation/javascript/get-api-key
 */
 ({
     latitude: {},
     longitude: {},
     zoom: {},
 	composite_val: {},
+	message_id: 'geoLocMessage',
+	apiKey: 'AIzaSyANt9K5jA1vxTLHDgP8v5F2ERQhMBRjoPU',
     /**
      * Called when initializing the field
      * @param options
      */
     initialize: function (options) {
         this._super('initialize', [options]);
+        /*this.buildApiInclude('http://maps.googleapis.com/maps/api/js?sensor=false','gmap_API');*/
+		this.addJavascript('http://maps.googleapis.com/maps/api/js?sensor=false&libraries=places&key='+this.apiKey,'gmap_API');
         this.latitude = {
             name: this.name + "_latitude",
             type: "varchar",
@@ -27,13 +32,55 @@
         };
 		if (_.isEmpty(this.model.get(this.def.name)))
         {
-			this.composite_val = '{"latitude":"18.9300","longitude":"72.8200","zoom":"14"}';
+			if( _.isEmpty(this.model.get('billing_address_street')) && _.isEmpty(this.model.get('billing_address_city')) && _.isEmpty(this.model.get('billing_address_state')) && _.isEmpty(this.model.get('billing_address_country')) ){
+				// set default latitude longitude and zoom
+				this.composite_val = '{"latitude":"23.644524198573688","longitude":"-102.65419006347656","zoom":"6"}';
+			}
 		}
 		else{
 			this.composite_val = this.model.get(this.def.name);
 		}
 		
     },
+	
+	buildApiInclude: function(src,id){
+		var self = this;
+		var remote_url = app.api.buildURL('get_google_maps_api_key/', null, null, {});
+		var key = null;
+		
+		$.ajax({
+			type: "GET",
+			url: remote_url,
+			async: false,
+			success: function (serverData) {
+				if(serverData=="key_not_found"){
+					app.alert.show(self.message_id, {
+						level: 'error ',
+						messages: app.lang.getAppString('LBL_API_KEY_MISSING'),
+						autoClose: false
+					});
+				}
+				else{
+					key = serverData;
+					self.addJavascript(src+'&key='+key,id);
+				}
+            },
+            error: function (serverData) {
+                console.log('error calling api "get_google_maps_api_key"');
+            },
+		});
+	},
+	
+	addJavascript: function(src,id){
+		if($('#'+id).length==0){
+			var js_file = document.createElement('script');
+			js_file.type = 'text/javascript';
+			js_file.src = src;
+			js_file.id = id;
+			document.getElementsByTagName('head')[0].appendChild(js_file);
+		}
+	},
+	
     /**
      * Called when rendering the field
      * @private
@@ -106,6 +153,7 @@
             }
         });
     },
+	
     bindDataChange: function () {
         this.model.on('change:' + this.latitude.name, this._updateJson, this);
         this.model.on('change:' + this.longitude.name, this._updateJson, this);
@@ -113,6 +161,7 @@
 
         this._super('bindDataChange');
     },
+	
     _updateJson: function () {
 		
         var resultantJson = {};
@@ -130,6 +179,7 @@
 		
 		this.makeInputsReadonly();
     },
+	
     _populateValueToModel: function ()
     {
         var fieldValue = this.composite_val;

@@ -1,10 +1,57 @@
+<style>
+  .controls {
+	margin-top: 10px;
+	border: 1px solid transparent;
+	border-radius: 2px 0 0 2px;
+	box-sizing: border-box;
+	-moz-box-sizing: border-box;
+	height: 32px;
+	outline: none;
+	box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  }
+
+  #pac-input {
+	background-color: #fff;
+	font-family: Roboto;
+	font-size: 15px;
+	font-weight: 300;
+	margin-left: 12px;
+	padding: 0 11px 0 13px;
+	text-overflow: ellipsis;
+	width: 300px;
+    height: 35px;
+  }
+
+  #pac-input:focus {
+	border-color: #4d90fe;
+  }
+
+  .pac-container {
+	font-family: Roboto;
+  }
+
+  #type-selector {
+	color: #fff;
+	background-color: #4d90fe;
+	padding: 5px 11px 0px 11px;
+  }
+
+  #type-selector label {
+	font-family: Roboto;
+	font-size: 13px;
+	font-weight: 300;
+  }
+  #target {
+	width: 345px;
+  }
+</style>
 <div id="geoLocDashlet" style="padding: 5px;">
 	<div style="display:inline-block; width: 100%;">
-		<span class="record-label span3">{{str 'LBL_DASHLET_GEOLOC_FIELD_SELECT'}}</span>
-		<span class="span5">
+		<span style="display:none;" class="record-label span3">{{str 'LBL_DASHLET_GEOLOC_FIELD_SELECT'}}</span>
+		<span style="display:none;" class="span5">
 			<select id="geoloc_selected"></select>
 		</span>
-		<span class="span4">
+		<span class="span12">
 			<button style="float:right;" id="copy_values" class="btn btn-primary">{{str 'LBL_DASHLET_COPY_VALUES'}}</button>
 		</span>
 	</div>
@@ -23,6 +70,6 @@
 		<span class="span9" id="DASHLET_ZOOM">
 		</span>
 	</div>
-	<div id="dvMap" style="width: 400px; height: 400px; margin: 0 auto; float:none;">
-	</div>
+	<input id="pac-input" class="controls" type="text" placeholder="Search Box">
+	<div id="dvMap" style="width: 500px; height: 500px; margin: 0 auto; float:none;"></div>
 </div>

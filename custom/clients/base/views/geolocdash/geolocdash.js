@@ -8,9 +8,9 @@
 	selected_field: {},
 	message_id: 'geoLocDashMessage',
 	defaults: 	{	
-					latitude:'31.521307428542418',
-					longitude:'74.3477600812912',
-					zoom:'20'
+					latitude:'23.644524198573688',
+					longitude:'-102.65419006347656',
+					zoom:'6'
 				},
 	latitude: {},
     longitude: {},
@@ -20,10 +20,11 @@
 	mapObj: {},
 	mapClickListener: {},
 	mapZoomListener: {},
+	mapSearchBox: {},
+	mapPlaceChngListener: {},
 
     initDashlet: function() {
-		var self = this;
-        		
+		var self = this;		
 		if(!_.isUndefined(this.model)){
 			$.each(this.model.fields, function(idx,field){
 				if(field.type=="Geoloc"){
@@ -33,12 +34,22 @@
 		}
 		if(_.isEmpty(this.GeoLocFields)) {
 			app.alert.show(this.message_id, {
-				level: 'error ',
+				level: 'error',
 				messages: app.lang.getAppString('LBL_DASHLET_MODULE_MISSING_GEOLOC'),
 				autoClose: false
 			});
 		}
     },
+	
+	addJavascript: function(src,id){
+		if($('#'+id).length==0){
+			var js_file = document.createElement('script');
+			js_file.type = 'text/javascript';
+			js_file.src = src;
+			js_file.id = id;
+			document.getElementsByTagName('head')[0].appendChild(js_file);
+		}
+	},
 
     loadData: function (options) {
         var self = this;
@@ -57,8 +68,26 @@
 	afterRender: function(){
 		var self = this;
 		self.populateFieldSelector();
-		self.fillDashletVars();
-		self.setMapCenter(this.defaults.latitude,this.defaults.longitude,this.defaults.zoom);
+		/* self.fillDashletVars();
+		self.setMapCenter(this.defaults.latitude,this.defaults.longitude,this.defaults.zoom); */
+		
+		var chkInterval = setInterval(function () {
+		  app.alert.show(self.message_id, {
+				level: 'info',
+				messages: 'Waiting for google API to load....',
+				autoClose: false
+			});
+		  if (typeof google == 'object') {
+			clearInterval(chkInterval);
+			// processing code
+			app.alert.show(self.message_id, {
+				level: 'success',
+				messages: 'Google API Loaded!',
+				autoClose: true
+			});
+			self.postApiLoadRender();
+		  }
+		}, 3000);
 		
 		self.disableCopy();
 		$('button#copy_values').click(function(){
@@ -72,11 +101,89 @@
 		});
 	},
 	
+	postApiLoadRender: function(){
+		var self = this;
+		var lati = null;
+		var longi = null;
+		var zoom = null;
+		
+		var map_centered_flg = false;
+		
+		self.latitude.name = self.selected_field.name+'_latitude';
+		self.longitude.name = self.selected_field.name+'_longitude';
+		self.zoom.name = self.selected_field.name+'_zoom';
+		
+		if( _.isEmpty(this.model.get('billing_address_street')) && _.isEmpty(this.model.get('billing_address_city')) && _.isEmpty(this.model.get('billing_address_state')) && _.isEmpty(this.model.get('billing_address_country')) ){
+			lati = self.model.get(self.latitude.name);
+			longi = self.model.get(self.longitude.name);
+			zoom = self.model.get(self.zoom.name);
+			self.setMapCenter(lati,longi,zoom);
+			self.fillDashletVars();
+		}
+		else{
+			var geocoder = new google.maps.Geocoder();
+			var address = this.model.get('billing_address_street')+', '+this.model.get('billing_address_city')+', '+this.model.get('billing_address_state')+', '+this.model.get('billing_address_country');
+						
+			geocoder.geocode( { 'address': address}, function(results, status) {
+			  if (status == google.maps.GeocoderStatus.OK) {
+				var latitude = results[0].geometry.location.lat();
+				var longitude = results[0].geometry.location.lng();
+				self.mapObj = new google.maps.Map(document.getElementById("dvMap"), {
+												  center: {lat: results[0].geometry.location.lat(), lng: results[0].geometry.location.lng()},
+												  zoom: 21,
+												  mapTypeId: google.maps.MapTypeId.ROADMAP
+												});
+				
+				self.mapObj.setCenter(results[0].geometry.location);
+				var marker = new google.maps.Marker({
+					map: self.mapObj,
+					position: results[0].geometry.location
+				});
+				if (results[0].geometry.viewport){
+					self.mapObj.fitBounds(results[0].geometry.viewport);
+					map_centered_flg = true;
+				}
+				
+				if(_.isEmpty(self.model.get(self.selected_field.name+'_latitude')) || _.isEmpty(self.model.get(self.selected_field.name+'_longitude')) || _.isEmpty(self.model.get(self.selected_field.name+'_zoom'))){
+					lati = latitude;
+					longi = longitude;
+					zoom = parseInt(self.mapObj.getZoom(),10);
+				}
+				else{
+					lati = self.model.get(self.latitude.name);
+					longi = self.model.get(self.longitude.name);
+					zoom = self.model.get(self.zoom.name);
+				}
+				
+				if(!map_centered_flg){
+					self.setMapCenter(lati,longi,zoom);
+				}
+				else{
+					self.searchBoxActivate();
+				}
+				self.fillDashletVars();
+				self.enableCopy();
+			  } 
+			});
+		}
+		
+		 
+	},
+	
 	populateFieldSelector: function(){
 		var self = this;
 		$('select#geoloc_selected').append('<option value="">None</option>');
+		var i=1;
+		var sel="";
 		$.each(this.GeoLocFields, function(idx,field){
-			$('select#geoloc_selected').append('<option value="'+field.name+'">'+app.lang.get(field.label,self.model.get('_module'))+'</option>');
+			if(i==1){
+				sel='selected="selected"';
+				self.selected_field.name = field.name;
+			}
+			else{
+				sel="";
+			}
+			$('select#geoloc_selected').append('<option '+sel+' value="'+field.name+'">'+app.lang.get(field.label,self.model.get('_module'))+'</option>');
 		});
 		
 		/*bind onchange event*/
@@ -104,6 +211,30 @@
 	
 	setMapCenter: function(lati,longi,zoom_val){
 		var self = this;
+		
+		var chkInterval = setInterval(function () {
+		  app.alert.show(self.message_id, {
+				level: 'info',
+				messages: 'Waiting for google API to load....',
+				autoClose: false
+			});
+		  if (typeof google == 'object') {
+			clearInterval(chkInterval);
+			// processing code
+			app.alert.show(self.message_id, {
+				level: 'success',
+				messages: 'Google API Loaded!',
+				autoClose: true
+			});
+			self.postApiLoad(lati,longi,zoom_val);
+		  }
+		}, 3000);
+		
+	},
+	
+	postApiLoad: function (lati,longi,zoom_val){
+		var self = this;
+		
 		this.mapOptions = {
 			center: new google.maps.LatLng(parseFloat(lati), parseFloat(longi)),
 			zoom: parseInt(zoom_val,10),
@@ -126,8 +257,7 @@
 			
 			/*Add new listeners*/
 			this.mapClickListener = google.maps.event.addListener(this.mapObj, 'click', function (e) {
-				$('#DASHLET_LATITUDE').html(e.latLng.lat());
-				$('#DASHLET_LONGITUDE').html(e.latLng.lng());
+				self.setDashLatLng();
 				if(self.isFieldSelected()){
 					self.enableCopy();
 				}
@@ -139,7 +269,85 @@
 					self.enableCopy();
 				}
 			});
+			
+			self.searchBoxActivate();
+			
 		}
+	},
+	
+	searchBoxActivate: function(){
+		var self = this;
+		
+		if(!_.isEmpty(this.mapPlaceChngListener)){
+			google.maps.event.removeListener(this.mapPlaceChngListener);
+		}
+		if($('#pac-input').length){
+			// Create the search box and link it to the UI element.
+			var input = document.getElementById('pac-input');
+			this.mapSearchBox = new google.maps.places.SearchBox(input);
+			this.mapObj.controls[google.maps.ControlPosition.TOP_LEFT].push(input);
+
+			// Bias the SearchBox results towards current map's viewport.
+			this.mapObj.addListener('bounds_changed', function() {
+			  self.mapSearchBox.setBounds(self.mapObj.getBounds());
+			  self.setDashLatLng();
+			});
+			
+			var markers = [];
+			// Listen for the event fired when the user selects a prediction and retrieve
+			// more details for that place.
+			this.mapPlaceChngListener = self.mapSearchBox.addListener('places_changed', function() {
+			  var places = self.mapSearchBox.getPlaces();
+
+			  if (places.length == 0) {
+				return;
+			  }
+
+			  // Clear out the old markers.
+			  markers.forEach(function(marker) {
+				marker.setMap(null);
+			  });
+			  markers = [];
+
+			  // For each place, get the icon, name and location.
+			  var bounds = new google.maps.LatLngBounds();
+			  places.forEach(function(place) {
+				if (!place.geometry) {
+				  console.log("Returned place contains no geometry");
+				  return;
+				}
+				var icon = {
+				  url: place.icon,
+				  size: new google.maps.Size(71, 71),
+				  origin: new google.maps.Point(0, 0),
+				  anchor: new google.maps.Point(17, 34),
+				  scaledSize: new google.maps.Size(25, 25)
+				};
+
+				// Create a marker for each place.
+				markers.push(new google.maps.Marker({
+				  map: self.mapObj,
+				  icon: icon,
+				  title: place.name,
+				  position: place.geometry.location
+				}));
+
+				if (place.geometry.viewport) {
+				  // Only geocodes have viewport.
+				  bounds.union(place.geometry.viewport);
+				} else {
+				  bounds.extend(place.geometry.location);
+				}
+			  });
+			  self.mapObj.fitBounds(bounds);
+			});
+			
+		}
+	},
+	
+	setDashLatLng: function(){
+		$('#DASHLET_LATITUDE').html(this.mapObj.center.lat());
+		$('#DASHLET_LONGITUDE').html(this.mapObj.center.lng());
 	},
 	
 	fillDashletVars: function(){
